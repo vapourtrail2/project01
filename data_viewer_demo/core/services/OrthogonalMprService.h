@@ -1,0 +1,105 @@
+#pragma once
+#include <memory>
+#include <array>
+#include <QString>
+#include <vtkImageData.h>
+#include "core/common/VtkMacros.h"
+
+class QVTKOpenGLNativeWidget;
+class vtkRenderWindow;
+class vtkRenderWindowInteractor;
+
+
+namespace core::mpr {
+    class MprAssembly;
+    class MprState;
+    class MprInteractionRouter;
+}
+
+namespace core::render {
+    class RenderService;
+}
+
+namespace core::services {
+
+    /**
+     * 封装三视图 + 3D MPR 的服务层，对外提供接口
+     * initializeViewers()：绑定4个VTK 窗口，交互器
+	 * bindImage()：绑定一份 vtkImageData 目前主要传入dicom数据
+     */
+
+    class DistanceMeasureService;
+    class AngleMeasureService;
+
+    class OrthogonalMprService
+    {
+    public:
+        OrthogonalMprService();
+        ~OrthogonalMprService();
+
+		//从目录加载 DICOM 序列
+        bool loadSeries(const QString& directory, QString* error);
+
+        //绑定4个VTK窗口，交互器  是从UI那边传进来
+        bool initializeViewers(
+            vtkRenderWindow* axialWindow, vtkRenderWindowInteractor* axialInteractor,
+            vtkRenderWindow* sagittalWindow, vtkRenderWindowInteractor* sagittalInteractor,
+            vtkRenderWindow* coronalWindow, vtkRenderWindowInteractor* coronalInteractor,
+            vtkRenderWindow* volumeWindow, vtkRenderWindowInteractor* volumeInteractor);
+
+        // 支持从QVTKOpenGLNativeWidget直接attach  如果在UI那边走的是Widget模式
+        void attachWidgets(QVTKOpenGLNativeWidget* axial,
+            QVTKOpenGLNativeWidget* coronal,
+            QVTKOpenGLNativeWidget* sagittal,
+            QVTKOpenGLNativeWidget* volume3D);
+
+        // 解除绑定
+        void detach();
+
+#if USE_VTK
+        // 绑定一份体数据
+        bool bindImage(vtkImageData* img);
+#endif
+
+        // 状态查询
+        bool hasData() const;
+
+        // 重置游标到体数据中心
+        void resetCursorToCenter();
+
+        // 设置三向切片索引
+        void setSliceIndex(int axial, int coronal, int sagittal);
+
+        // 设置窗宽窗位
+        void setWindowLevel(double window, double level, bool allViews = true);
+
+        // 应用预设
+        void applyPreset(const QString& name);
+
+		// 获取距离测量服务
+        DistanceMeasureService* distanceService() const;
+
+        // 用体素坐标添加测量的接口
+        int addDistanceMeasureByVoxel(const std::array<int, 3>& p0Ijk,const std::array<int, 3>& p1Ijk);
+
+		//2D距离测量功能是否启用
+		bool enable2dDistanceMeasure();
+
+
+        //获取内部的 AngleMeasureService
+        AngleMeasureService* angleService() const;
+
+ 
+        //接口：使用体素坐标写入三点角度记录
+        int addAngleMeasureByVoxel(const std::array<int, 3>& p0Ijk,
+            const std::array<int, 3>& p1Ijk,
+            const std::array<int, 3>& p2Ijk);
+
+        //打开 2D 角度量测工具
+        bool enable2dAngleMeasure();
+    private:
+        struct Impl;
+        std::unique_ptr<Impl> impl_;
+    };
+
+} // namespace core::services
