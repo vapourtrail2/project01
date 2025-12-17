@@ -35,7 +35,7 @@ namespace core::services {
         DistanceMeasureService();
 
         /*
-         * 绑定当前体数据。
+         * 绑定当前体数据
          */
         void bindVolume(const core::data::VolumeModel* volume);
 

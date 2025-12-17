@@ -137,15 +137,27 @@ namespace core::mpr {
             return;
         }
 
-        // 重新创建前先释放旧的 VTK 对象（保留窗口指针）
+        // 重新创建前先释放旧的 VTK 对象 保留窗口指针
         if (m_axialViewer) { m_axialViewer->Delete();   m_axialViewer = nullptr; }
         if (m_coronalViewer) { m_coronalViewer->Delete(); m_coronalViewer = nullptr; }
         if (m_sagittalViewer) { m_sagittalViewer->Delete(); m_sagittalViewer = nullptr; }
         if (m_volumeMapper) { m_volumeMapper->Delete();  m_volumeMapper = nullptr; }
         if (m_volume) { m_volume->Delete();        m_volume = nullptr; }
         if (m_volumeProperty) { m_volumeProperty->Delete(); m_volumeProperty = nullptr; }
+
+        //修改:先把对象解绑 再删除
+        if (m_volumeRawWindow && m_renderer3D) {
+            m_renderer3D->RemoveAllViewProps();     
+            m_volumeRawWindow->RemoveRenderer(m_renderer3D);
+        }
+
         if (m_renderer3D) { m_renderer3D->Delete();    m_renderer3D = nullptr; }
-		if (m_axesWidget) { m_axesWidget->Delete(); m_axesWidget = nullptr; }//坐标轴
+        if (m_axesWidget) {
+            m_axesWidget->SetEnabled(0);
+            m_axesWidget->SetInteractor(nullptr);
+            m_axesWidget->Delete();
+            m_axesWidget = nullptr;
+        }
         if (m_axesActor) { m_axesActor->Delete();  m_axesActor = nullptr; }
 
         m_axialViewer = vtkResliceImageViewer::New();
@@ -423,7 +435,7 @@ namespace core::mpr {
             img->GetScalarRange(range);
         }
         m_lut->SetRange(range);
-        m_lut->SetHueRange(0.0, 0.0);   // 单色
+        m_lut->SetHueRange(0.0, 0.0); 
         m_lut->Build();
     }
 
@@ -445,6 +457,21 @@ namespace core::mpr {
         if (!interactor) {
             return;
         }
+
+        //清理旧的平面 12/17
+        auto cleanupPlane = [](vtkSmartPointer<vtkImagePlaneWidget>& p) {
+            if (!p) {
+                return;
+            }
+            p->Off();  // 从interactor事件/渲染里退出
+            p->RemoveObservers(vtkCommand::InteractionEvent); 
+            p->SetInteractor(nullptr); 
+            p = nullptr; 
+            };
+        cleanupPlane(m_planeX);
+        cleanupPlane(m_planeY);
+        cleanupPlane(m_planeZ);
+        m_cb3D = nullptr;
 
         auto* img = m_state->image();
         ensureLutFromImage(img);

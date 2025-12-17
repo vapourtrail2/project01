@@ -16,9 +16,7 @@ namespace core::io {
         core::common::Result<core::data::VolumeModel> loadDicomDir(const QString& dir) override;
         core::common::Result<core::data::VolumeModel> loadNifti(const QString& file) override;
         core::common::Result<core::data::VolumeModel> loadRaw(const RawParam& param, const QString& file) override;
-
     private:
         core::common::Result<core::data::VolumeModel> buildModelFromImage(vtkImageData* image, const QString& source);
     };
-
 } // namespace core::io

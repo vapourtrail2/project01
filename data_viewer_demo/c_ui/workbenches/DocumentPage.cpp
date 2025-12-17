@@ -389,7 +389,7 @@ void DocumentPage::showOpenDicomDialog()
 
         inputDicomDirectory_ = new QLineEdit(dicomDialog_);
         inputDicomDirectory_->setPlaceholderText(QStringLiteral("选择或输入 DICOM 序列所在目录"));
-        inputRow->addWidget(inputDicomDirectory_, 1);
+		inputRow->addWidget(inputDicomDirectory_, 1);
 
         btnDicomBrowse_ = new QPushButton(QStringLiteral("浏览..."), dicomDialog_);
         inputRow->addWidget(btnDicomBrowse_);
@@ -412,7 +412,7 @@ void DocumentPage::showOpenDicomDialog()
         /*dicomDialog_->setFixedSize(350, 70);*/
    
         connect(btnDicomBrowse_, &QPushButton::clicked, this, [this]() {
-            const QString directory = QFileDialog::getExistingDirectory(this, QStringLiteral("选择 DICOM 序列所在目录"));
+			const QString directory = QFileDialog::getExistingDirectory(this, QStringLiteral("选择 DICOM 序列所在目录"));
             if (!directory.isEmpty()) {
                 inputDicomDirectory_->setText(directory);
             }
@@ -468,18 +468,20 @@ void DocumentPage::loadDicomDirectory(const QString& directory)
         return;
     }
 
+    //即使加载失败了 加载逻辑也跑完了
+	//等同于bool ok = mprService_->loadSeries(...);
+    //if(!ok)...
     QString error;
     if (!mprService_->loadSeries(directory, &error)) {
         updateDicomStatusLabel(error.isEmpty() ? QStringLiteral("加载失败，请检查目录。") : error, true);
         return;
     }
-    updateDicomStatusLabel(QStringLiteral("DICOM 数据加载成功"), false);
 
-	emit dicomLoaded(mprService_.get());
+    updateDicomStatusLabel(QStringLiteral("DICOM 数据加载成功"), false);
+	emit dicomLoaded(mprService_.get());//DICOM已经加载完毕，这是对应的MPR服务对象，接下来把四视图初始化并显示出来
 
     if (dicomDialog_) {
 		dicomDialog_->accept();
     }
-
 }
 
